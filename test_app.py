@@ -12,5 +12,5 @@ def test_high_performance_prediction(self):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.get_json()["prediction"],
-            "FAIL"  # <--- Changed temporarily from "PASS" to "FAIL"
+            "FAIL"  # <-- Make sure this line is changed in test_app.py
         )
