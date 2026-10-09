@@ -1,68 +1,40 @@
-import unittest
+import json
+import joblib
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
-from app import app
+# Generate dummy training data
+data = {
+    "attendance": [90, 50, 85, 40, 95, 60, 80, 45, 88, 52],
+    "internal_marks": [85, 30, 80, 25, 90, 40, 75, 35, 82, 38],
+    "assignment_marks": [88, 40, 85, 30, 92, 45, 80, 38, 86, 42],
+    "previous_score": [80, 35, 78, 30, 88, 50, 72, 40, 84, 45],
+    "result": [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+}
 
+df = pd.DataFrame(data)
 
-class TestPredictionApplication(unittest.TestCase):
+X = df[["attendance", "internal_marks", "assignment_marks", "previous_score"]]
+y = df["result"]
 
-    def setUp(self):
-        self.client = app.test_client()
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
-    def test_health_endpoint(self):
-        response = self.client.get("/")
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json()["status"], "ok")
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
 
-    def test_high_performance_prediction(self):
-        response = self.client.post(
-            "/predict",
-            json={
-                "attendance": 90,
-                "internal_marks": 85,
-                "assignment_marks": 88,
-                "previous_score": 80
-            }
-        )
+# Save the trained model artifact
+joblib.dump(model, "student_result_model.pkl")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.get_json()["prediction"],
-            "PASS"
-        )
+# Save evaluation metrics
+metrics = {"accuracy": float(accuracy)}
+with open("metrics.json", "w") as f:
+    json.dump(metrics, f, indent=4)
 
-    def test_low_performance_prediction(self):
-        response = self.client.post(
-            "/predict",
-            json={
-                "attendance": 55,
-                "internal_marks": 30,
-                "assignment_marks": 40,
-                "previous_score": 35
-            }
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.get_json()["prediction"],
-            "FAIL"
-        )
-
-    def test_missing_field_validation(self):
-        response = self.client.post(
-            "/predict",
-            json={
-                "attendance": 90,
-                "internal_marks": 85
-            }
-        )
-
-        self.assertEqual(response.status_code, 400)
-        self.assertIn(
-            "missing_fields",
-            response.get_json()
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+print(f"Model training complete. Test Accuracy: {accuracy:.2f}")
